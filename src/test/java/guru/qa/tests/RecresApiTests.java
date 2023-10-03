@@ -1,87 +1,107 @@
 package guru.qa.tests;
 
-import com.codeborne.selenide.conditions.Value;
+import guru.qa.tests.models.lombok.AddEmloyeeLombokModel;
+import guru.qa.tests.models.lombok.ChangeJobEmployeeLombokModel;
+import guru.qa.tests.models.lombok.LoginBodyLombokModel;
+import guru.qa.tests.models.lombok.LoginResponseLombokModel;
+import io.qameta.allure.restassured.AllureRestAssured;
+import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import io.restassured.internal.common.assertion.Assertion;
-import io.restassured.matcher.ResponseAwareMatcher;
-import io.restassured.response.Response;
-import org.assertj.core.api.InstanceOfAssertFactories;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.util.*;
 
-import static com.google.common.base.Predicates.equalTo;
+import static guru.qa.tests.specs.AddEmployeeTestSpec.addEmployeeRequestSpec;
+import static guru.qa.tests.specs.AddEmployeeTestSpec.addEmployeeResponseSpec;
+import static guru.qa.tests.specs.ChangeJobEmployeeTestSpec.changeJobEmployeeRequestSpec;
+import static guru.qa.tests.specs.ChangeJobEmployeeTestSpec.changeJobEmployeeResponseSpec;
+import static guru.qa.tests.specs.LoginEmployeeTestSpec.loginEmployeeRequestSpec;
+import static guru.qa.tests.specs.LoginEmployeeTestSpec.loginEmployeeResponseSpec;
+import static guru.qa.tests.specs.RecresApiGet2PageTestSpec.recresApiGet2PageRequestSpec;
+import static guru.qa.tests.specs.RecresApiGet2PageTestSpec.recresApiGet2PageResponseSpec;
+import static guru.qa.tests.specs.UserIdForSecondPageTestSpec.userIdForSecondPageRequestSpec;
+import static guru.qa.tests.specs.UserIdForSecondPageTestSpec.userIdForSecondPageResponseSpec;
 import static io.restassured.RestAssured.given;
-import static io.restassured.RestAssured.when;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.BDDAssertions.then;
-import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
-import static org.hamcrest.Matchers.in;
+import static io.restassured.RestAssured.requestSpecification;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RecresApiTests {
+    @BeforeEach
+    void beforeEach(){
+        RestAssured.baseURI = "https://reqres.in/api";
+    }
     @Test
-    void recresApiTests1() {
+    void recresApiGet2PageTest() {
 
         given()
                 .when()
-                        .get("https://reqres.in/api/users?page=2")
+                .spec(recresApiGet2PageRequestSpec)
                 .then()
-                .body("page", is(2))
-                .statusCode(200);
-
+                .spec(recresApiGet2PageResponseSpec);
     }
+
     @Test
-    void recresApiTests2() {
-        List<Integer> value = Arrays.asList(7, 8, 9, 10, 11, 12);
+    void userIdForSecondPageTest() {
 
         given()
                 .when()
-                .get("https://reqres.in/api/users?page=2")
+                .spec(userIdForSecondPageRequestSpec)
                 .then()
-                .body("data.id", is(value));
+                .spec(userIdForSecondPageResponseSpec);
+    }
+
+    @Test
+    void addEmployeeTest() {
+        AddEmloyeeLombokModel addbodyEmploee = new AddEmloyeeLombokModel();
+        addbodyEmploee.setBodyEmloyee("{ \"name\": \"morpheus\", \"job\": \"leader\" }");
+
+        AddEmloyeeLombokModel response = given()
+                .spec(addEmployeeRequestSpec)
+                .body(addbodyEmploee)
+                .when()
+                .post()
+                .then()
+                .spec(addEmployeeResponseSpec)
+                .extract().as(AddEmloyeeLombokModel.class);
+                //.body("name", is("morpheus"))
+                //.body("job", is("leader"));
+
+        assertEquals("morpheus", response.getBodyEmloyee());
+        assertEquals("leader", response.getBodyEmloyee());
+    }
+    @Test
+    void loginEmployeeTest() {
+        LoginBodyLombokModel login = new LoginBodyLombokModel();
+        login.setEmail("eve.holt@reqres.in");
+        login.setPassword("cityslicka");
+
+        LoginResponseLombokModel response = given()
+                .spec(loginEmployeeRequestSpec)
+                .body(login)
+                .when()
+                .post()
+                .then()
+                .spec(loginEmployeeResponseSpec)
+                .extract().as(LoginResponseLombokModel.class);
+
+        assertEquals("QpwL5tke4Pnpja7X4", response.getToken());
 
     }
     @Test
-    void recresApiTests3() {
-        String body = "{ \"name\": \"morpheus\", \"job\": \"leader\" }";
+    void changeJobEmployeeTest() {
+        ChangeJobEmployeeLombokModel body = new ChangeJobEmployeeLombokModel();
+        body.setChangeBody("{ \"name\": \"morpheus\", \"job\": \"zion resident\" }");
 
-        given()
+        ChangeJobEmployeeLombokModel response = given()
+                .spec(changeJobEmployeeRequestSpec)
                 .body(body)
-                .contentType(ContentType.JSON)
                 .when()
-                .post("https://reqres.in/api/users")
+                .put()
                 .then()
-                .statusCode(201)
-                .body("name", is("morpheus"))
-                .body("job", is("leader"));
-    }
-    @Test
-    void recresApiTests4() {
-        String body = "{ \"email\": \"eve.holt@reqres.in\", \"password\": \"cityslicka\" }";
-
-        given()
-                .body(body)
-                .contentType(ContentType.JSON)
-                .when()
-                .post("https://reqres.in/api/login")
-                .then()
-                .statusCode(200)
-                .body("token", is("QpwL5tke4Pnpja7X4"));
-    }
-    @Test
-    void recresApiTests5() {
-    String body = "{ \"name\": \"morpheus\", \"job\": \"zion resident\" }";
-        given()
-                .body(body)
-                .contentType(ContentType.JSON)
-                .when()
-                .put("https://reqres.in/api/users/2")
-                .then()
-                .statusCode(200)
-                .body("name", is("morpheus"))
-                .body ("job", is("zion resident"));
+                .spec(changeJobEmployeeResponseSpec)
+                .extract().as(ChangeJobEmployeeLombokModel.class);
+        assertEquals("morpheus", response.getChangeBody());
+        assertEquals("zion resident", response.getChangeBody());
     }
 }
